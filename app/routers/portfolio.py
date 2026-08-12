@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from supabase import Client
 
+from app.core.security import verify_access_token
 from app.core.supabase import get_supabase_client
 from app.repositories.experience_repo import ExperienceRepository
 from app.repositories.personal_info_repo import PersonalInfoRepository
@@ -13,7 +14,10 @@ from app.schemas.studies import Study
 from app.schemas.technologies import Technology
 from app.services.portfolio_service import PortfolioService
 
-router = APIRouter(tags=["portfolio"])
+router = APIRouter(
+    tags=["portfolio"],
+    dependencies=[Depends(verify_access_token)],
+)
 
 
 def get_portfolio_service(

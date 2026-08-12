@@ -36,7 +36,12 @@ Ver [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) para la estructura completa de la
 cp .env.example .env
 ```
 
-2. Completa `SUPABASE_SERVICE_KEY` desde Supabase → Project Settings → API → `service_role` key.
+2. Completa las variables en `.env`:
+   - `SUPABASE_SERVICE_KEY` → Supabase → Settings → **API Keys** → **Secret keys** → `sb_secret_...`
+   - `JWT_SECRET` → secreto largo para firmar tokens (mín. 32 caracteres)
+   - `API_CLIENT_SECRET` → secreto compartido con el frontend
+
+   > No uses la contraseña de la BD ni la publishable key (`sb_publishable_...`).
 
 3. Instala dependencias:
 
@@ -61,17 +66,19 @@ Documentación interactiva: http://localhost:8000/docs
 
 ## Endpoints
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/api/v1/profile` | Información personal |
-| GET | `/api/v1/experience` | Experiencia laboral |
-| GET | `/api/v1/studies` | Estudios |
-| GET | `/api/v1/technologies` | Tecnologías |
-| GET | `/api/v1/portfolio` | Todo agregado (para el front) |
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/health` | No | Health check |
+| POST | `/api/v1/auth/token` | No | Obtener JWT con `client_secret` |
+| GET | `/api/v1/profile` | JWT | Información personal |
+| GET | `/api/v1/experience` | JWT | Experiencia laboral |
+| GET | `/api/v1/studies` | JWT | Estudios |
+| GET | `/api/v1/technologies` | JWT | Tecnologías |
+| GET | `/api/v1/portfolio` | JWT | Todo agregado (para el front) |
 
 ## Seguridad
 
-- Nunca expongas `SUPABASE_SERVICE_KEY` en el frontend.
+- Nunca expongas `SUPABASE_SERVICE_KEY` ni `JWT_SECRET` en el frontend.
+- El frontend solo necesita `API_CLIENT_SECRET` (server-side) para obtener el JWT.
 - Rota credenciales si fueron compartidas públicamente.
 - Las tablas tienen RLS con lectura pública; escritura solo vía `service_role` desde este backend.

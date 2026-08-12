@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import portfolio
+from app.routers import auth, portfolio
 
 app = FastAPI(
     title="API Presentation",
@@ -18,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(portfolio.router, prefix=settings.api_prefix)
 
 
