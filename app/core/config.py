@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         "image/jpeg,image/png,image/webp,image/gif,application/pdf"
     )
 
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.1-8b-instant"
+    groq_api_url: str = "https://api.groq.com/openai/v1/chat/completions"
+    chat_max_turns: int = 3
+    chat_max_message_chars: int = 500
+
     @property
     def i18n_target_languages_list(self) -> list[str]:
         langs = [

@@ -22,6 +22,12 @@ from app.schemas.portfolio_write import (
 from app.schemas.studies import Study
 from app.schemas.technologies import Technology
 from app.services.i18n_service import I18nService
+from app.services.portfolio_i18n_sync import (
+    ensure_portfolio_i18n,
+    sync_experience_i18n,
+    sync_study_i18n,
+    sync_technology_i18n,
+)
 
 DEFAULT_FULL_NAME = "Jhonny Alexander Fonseca"
 DEFAULT_HEADLINE = "Desarrollador"
@@ -42,12 +48,14 @@ class PortfolioService:
         profile = self._personal_info.get_active()
         profile_id = str(profile.id) if profile else None
 
-        return Portfolio(
+        portfolio = Portfolio(
             profile=profile,
             experience=self._experience.list_active(profile_id),
             studies=self._studies.list_active(profile_id),
             technologies=self._technologies.list_active(profile_id),
         )
+        ensure_portfolio_i18n(self._client, portfolio)
+        return portfolio
 
     def _profile_id(self) -> str:
         profile = self._personal_info.get_active()
@@ -126,7 +134,7 @@ class PortfolioService:
 
     def create_experience(self, body: ExperienceWrite) -> Experience:
         end_date = None if body.is_current else body.end_date
-        return self._experience.create(
+        result = self._experience.create(
             {
                 "profile_id": self._profile_id(),
                 "company": body.company.strip(),
@@ -139,10 +147,15 @@ class PortfolioService:
                 "is_active": True,
             }
         )
+        try:
+            sync_experience_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de experiencia: %s", exc)
+        return result
 
     def update_experience(self, item_id: UUID, body: ExperienceWrite) -> Experience:
         end_date = None if body.is_current else body.end_date
-        return self._experience.update(
+        result = self._experience.update(
             item_id,
             {
                 "company": body.company.strip(),
@@ -154,13 +167,18 @@ class PortfolioService:
                 "is_current": body.is_current,
             },
         )
+        try:
+            sync_experience_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de experiencia: %s", exc)
+        return result
 
     def delete_experience(self, item_id: UUID) -> None:
         self._experience.soft_delete(item_id)
 
     def create_study(self, body: StudyWrite) -> Study:
         end_date = None if body.is_current else body.end_date
-        return self._studies.create(
+        result = self._studies.create(
             {
                 "profile_id": self._profile_id(),
                 "institution": body.institution.strip(),
@@ -172,10 +190,15 @@ class PortfolioService:
                 "is_active": True,
             }
         )
+        try:
+            sync_study_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de estudio: %s", exc)
+        return result
 
     def update_study(self, item_id: UUID, body: StudyWrite) -> Study:
         end_date = None if body.is_current else body.end_date
-        return self._studies.update(
+        result = self._studies.update(
             item_id,
             {
                 "institution": body.institution.strip(),
@@ -186,12 +209,17 @@ class PortfolioService:
                 "is_current": body.is_current,
             },
         )
+        try:
+            sync_study_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de estudio: %s", exc)
+        return result
 
     def delete_study(self, item_id: UUID) -> None:
         self._studies.soft_delete(item_id)
 
     def create_technology(self, body: TechnologyWrite) -> Technology:
-        return self._technologies.create(
+        result = self._technologies.create(
             {
                 "profile_id": self._profile_id(),
                 "name": body.name.strip(),
@@ -201,9 +229,14 @@ class PortfolioService:
                 "is_active": True,
             }
         )
+        try:
+            sync_technology_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de tecnología: %s", exc)
+        return result
 
     def update_technology(self, item_id: UUID, body: TechnologyWrite) -> Technology:
-        return self._technologies.update(
+        result = self._technologies.update(
             item_id,
             {
                 "name": body.name.strip(),
@@ -212,6 +245,11 @@ class PortfolioService:
                 "category": body.category,
             },
         )
+        try:
+            sync_technology_i18n(self._client, result)
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar i18n de tecnología: %s", exc)
+        return result
 
     def delete_technology(self, item_id: UUID) -> None:
         self._technologies.soft_delete(item_id)

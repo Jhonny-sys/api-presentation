@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.supabase import get_supabase_client
 from app.middleware.jwt_auth import JWTAuthMiddleware
-from app.routers import auth, i18n, portfolio, uploads
+from app.routers import auth, chat, i18n, portfolio, uploads
 from app.services.token_cleanup_service import TokenCleanupService
 
 
@@ -33,6 +33,7 @@ app.add_middleware(
 app.add_middleware(JWTAuthMiddleware)
 
 app.include_router(auth.router, prefix=settings.api_prefix)
+app.include_router(chat.router, prefix=settings.api_prefix)
 app.include_router(i18n.router, prefix=settings.api_prefix)
 app.include_router(uploads.router, prefix=settings.api_prefix)
 app.include_router(portfolio.router, prefix=settings.api_prefix)

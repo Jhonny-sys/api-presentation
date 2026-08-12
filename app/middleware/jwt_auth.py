@@ -38,9 +38,17 @@ PUBLIC_GET_PREFIXES = (
     f"{settings.api_prefix}/i18n/bundle/",
 )
 
+PUBLIC_POST_PATHS = frozenset(
+    {
+        f"{settings.api_prefix}/chat",
+    }
+)
+
 
 def is_public_api_request(method: str, path: str) -> bool:
     if path in PUBLIC_API_PATHS:
+        return True
+    if method == "POST" and path in PUBLIC_POST_PATHS:
         return True
     if method != "GET":
         return False
