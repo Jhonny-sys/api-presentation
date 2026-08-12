@@ -180,8 +180,8 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
         bio = _localized(messages, "profile.bio", profile.bio)
         sections.extend(
             [
-                "## Perfil (hoja de vida, CV, bio, presentación)",
-                "Usa esta sección cuando pregunten por el perfil, hoja de vida, CV o quién es.",
+                "## Perfil (hoja de vida, CV, bio, presentación, idiomas)",
+                "Usa esta sección cuando pregunten por el perfil, hoja de vida, CV, quién es o qué idiomas habla.",
                 f"Nombre: {profile.full_name}",
                 f"Título: {headline}",
                 f"Bio: {bio}",
@@ -193,6 +193,8 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
             sections.append(f"Teléfono: {profile.phone}")
         if profile.location:
             sections.append(f"Ubicación: {profile.location}")
+        if profile.languages:
+            sections.append(f"Idiomas que habla: {profile.languages}")
         social = profile.social_links
         if social.github:
             sections.append(f"GitHub: {social.github}")

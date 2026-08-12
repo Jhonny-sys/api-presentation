@@ -16,6 +16,7 @@ class PersonalInfo(BaseModel):
     email: str | None = None
     phone: str | None = None
     location: str | None = None
+    languages: str | None = None
     avatar_url: str | None = None
     resume_url: str | None = None
     letter_url: str | None = None

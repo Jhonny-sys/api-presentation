@@ -13,6 +13,7 @@ class ProfileUpdate(BaseModel):
     email: str | None = None
     phone: str | None = None
     location: str | None = None
+    languages: str | None = None
     github: str | None = None
     linkedin: str | None = None
 
