@@ -10,6 +10,10 @@ class ProfileUpdate(BaseModel):
     avatar_url: str | None = None
     resume_url: str | None = None
     letter_url: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    github: str | None = None
+    linkedin: str | None = None
 
 
 class ProfileBioUpdate(ProfileUpdate):

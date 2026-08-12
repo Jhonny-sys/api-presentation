@@ -72,21 +72,39 @@ class PortfolioService:
                 detail="No hay datos para actualizar",
             )
 
+        github = payload.pop("github", None)
+        linkedin = payload.pop("linkedin", None)
+        if github is not None or linkedin is not None:
+            profile = self._personal_info.get_active()
+            social_links = (
+                profile.social_links.model_dump()
+                if profile
+                else {"github": None, "linkedin": None, "website": None}
+            )
+            if github is not None:
+                social_links["github"] = github or None
+            if linkedin is not None:
+                social_links["linkedin"] = linkedin or None
+            payload["social_links"] = social_links
+
         profile = self._personal_info.get_active()
         if profile:
             result = self._personal_info.update(str(profile.id), payload)
         else:
-            result = self._personal_info.create(
-                {
-                    "full_name": DEFAULT_FULL_NAME,
-                    "headline": DEFAULT_HEADLINE,
-                    "bio": payload.get("bio", ""),
-                    "avatar_url": payload.get("avatar_url"),
-                    "resume_url": payload.get("resume_url"),
-                    "letter_url": payload.get("letter_url"),
-                    "is_active": True,
-                }
-            )
+            create_payload: dict = {
+                "full_name": DEFAULT_FULL_NAME,
+                "headline": DEFAULT_HEADLINE,
+                "bio": payload.get("bio", ""),
+                "avatar_url": payload.get("avatar_url"),
+                "resume_url": payload.get("resume_url"),
+                "letter_url": payload.get("letter_url"),
+                "email": payload.get("email"),
+                "phone": payload.get("phone"),
+                "is_active": True,
+            }
+            if "social_links" in payload:
+                create_payload["social_links"] = payload["social_links"]
+            result = self._personal_info.create(create_payload)
 
         if "bio" in payload and payload["bio"] is not None:
             self._sync_profile_bio_i18n(payload["bio"])
