@@ -1,13 +1,25 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.supabase import get_supabase_client
 from app.routers import auth, portfolio
+from app.services.token_cleanup_service import TokenCleanupService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    TokenCleanupService(get_supabase_client()).purge_if_due(force=True)
+    yield
+
 
 app = FastAPI(
     title="API Presentation",
     description="Backend del catálogo profesional de Jhonny",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

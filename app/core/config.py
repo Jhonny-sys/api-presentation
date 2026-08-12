@@ -15,7 +15,9 @@ class Settings(BaseSettings):
 
     jwt_secret: str
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 1440
+    jwt_expire_minutes: int = 10
+    jwt_refresh_expire_days: int = 7
+    refresh_token_pepper: str
     api_client_secret: str
 
     @property

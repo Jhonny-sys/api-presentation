@@ -50,10 +50,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Ejecuta la migración SQL en Supabase → SQL Editor:
+4. Ejecuta las migraciones SQL en Supabase → SQL Editor:
 
 ```
 supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_refresh_tokens.sql
+supabase/migrations/003_revoked_sessions.sql
 ```
 
 ## Ejecutar la API
@@ -69,7 +71,9 @@ Documentación interactiva: http://localhost:8000/docs
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | GET | `/health` | No | Health check |
-| POST | `/api/v1/auth/token` | No | Obtener JWT con `client_secret` |
+| POST | `/api/v1/auth/token` | No | Obtener access + refresh token |
+| POST | `/api/v1/auth/refresh` | No | Renovar tokens (rotación) |
+| POST | `/api/v1/auth/revoke` | No | Invalidar sesión (logout) |
 | GET | `/api/v1/profile` | JWT | Información personal |
 | GET | `/api/v1/experience` | JWT | Experiencia laboral |
 | GET | `/api/v1/studies` | JWT | Estudios |
@@ -79,6 +83,7 @@ Documentación interactiva: http://localhost:8000/docs
 ## Seguridad
 
 - Nunca expongas `SUPABASE_SERVICE_KEY` ni `JWT_SECRET` en el frontend.
-- El frontend solo necesita `API_CLIENT_SECRET` (server-side) para obtener el JWT.
+- Access token: **10 minutos**. Refresh token: **7 días** con rotación.
+- Ver [`docs/AUTH.md`](docs/AUTH.md) para el flujo completo.
 - Rota credenciales si fueron compartidas públicamente.
 - Las tablas tienen RLS con lectura pública; escritura solo vía `service_role` desde este backend.
