@@ -44,17 +44,53 @@ TECH_CATEGORY_ORDER = ("backend", "frontend", "database", "cloud", "other")
 
 STACK_SECTION_HINT: dict[str, str] = {
     "es": (
-        "Nota: preguntas sobre proyectos, stack, tecnologías o herramientas "
-        "deben responderse con esta sección."
+        "Nota: preguntas generales sobre proyectos, stack o herramientas "
+        "pueden usar esta sección; para bases de datos o cloud/host usa las secciones dedicadas abajo."
     ),
     "en": (
-        "Note: questions about projects, stack, technologies or tools "
-        "should be answered using this section."
+        "Note: general questions about projects, stack or tools "
+        "may use this section; for databases or cloud/hosting use the dedicated sections below."
     ),
     "pt": (
-        "Nota: perguntas sobre projetos, stack, tecnologias ou ferramentas "
-        "devem ser respondidas com esta seção."
+        "Nota: perguntas gerais sobre projetos, stack ou ferramentas "
+        "podem usar esta seção; para bancos de dados ou cloud/host use as seções dedicadas abaixo."
     ),
+}
+
+DATABASE_SECTION_HINT: dict[str, str] = {
+    "es": (
+        "Responde con esta sección cuando pregunten por bases de datos, DB, SQL, datos, "
+        "MongoDB, PostgreSQL, MySQL, Supabase, Redis, etc."
+    ),
+    "en": (
+        "Answer using this section when they ask about databases, DB, SQL, data stores, "
+        "MongoDB, PostgreSQL, MySQL, Supabase, Redis, etc."
+    ),
+    "pt": (
+        "Responda com esta seção quando perguntarem sobre bancos de dados, DB, SQL, dados, "
+        "MongoDB, PostgreSQL, MySQL, Supabase, Redis, etc."
+    ),
+}
+
+CLOUD_SECTION_HINT: dict[str, str] = {
+    "es": (
+        "Responde con esta sección cuando pregunten por host, hosting, cloud, nube, deploy, "
+        "despliegue, infraestructura, AWS, GCP, Azure, Vercel, Render, Fly.io, Docker, Kubernetes, etc."
+    ),
+    "en": (
+        "Answer using this section when they ask about host, hosting, cloud, deploy, "
+        "infrastructure, AWS, GCP, Azure, Vercel, Render, Fly.io, Docker, Kubernetes, etc."
+    ),
+    "pt": (
+        "Responda com esta seção quando perguntarem sobre host, hosting, cloud, deploy, "
+        "infraestrutura, AWS, GCP, Azure, Vercel, Render, Fly.io, Docker, Kubernetes, etc."
+    ),
+}
+
+EMPTY_CATEGORY_LABEL: dict[str, str] = {
+    "es": "(Sin tecnologías registradas en esta categoría)",
+    "en": "(No technologies registered in this category)",
+    "pt": "(Sem tecnologias registradas nesta categoria)",
 }
 
 
@@ -171,6 +207,48 @@ def _group_technologies_by_category(technologies):
     return groups
 
 
+def _technologies_by_category(technologies, category: str) -> list:
+    return [
+        item
+        for item in technologies
+        if (item.category if item.category in TECH_CATEGORY_ORDER else "other") == category
+    ]
+
+
+def _format_technology_lines(items, messages: dict[str, str], lang: str) -> list[str]:
+    if not items:
+        empty = EMPTY_CATEGORY_LABEL.get(lang, EMPTY_CATEGORY_LABEL["es"])
+        return [f"- {empty}"]
+
+    lines: list[str] = []
+    for item in items:
+        description = _localized(
+            messages,
+            _technology_key(item.id, "description"),
+            item.description,
+        )
+        line = f"- {item.name}"
+        if description:
+            line += f": {description}"
+        lines.append(line)
+    return lines
+
+
+def _append_technology_category_section(
+    sections: list[str],
+    *,
+    title: str,
+    hint: str,
+    items,
+    messages: dict[str, str],
+    lang: str,
+) -> None:
+    sections.append(title)
+    sections.append(hint)
+    sections.extend(_format_technology_lines(items, messages, lang))
+    sections.append("")
+
+
 def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang: str) -> str:
     profile = portfolio.profile
     sections: list[str] = [f"Idioma de respuesta: {lang}", ""]
@@ -239,21 +317,39 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
         sections.append("")
 
     if portfolio.technologies:
-        hint = STACK_SECTION_HINT.get(lang, STACK_SECTION_HINT["es"])
-        sections.append("## Stack tecnológico (proyectos y herramientas)")
-        sections.append(hint)
-        for category, items in _group_technologies_by_category(portfolio.technologies):
-            sections.append(f"### {_tech_category_label(category, lang)}")
-            for item in items:
-                description = _localized(
-                    messages,
-                    _technology_key(item.id, "description"),
-                    item.description,
-                )
-                line = f"- {item.name}"
-                if description:
-                    line += f": {description}"
-                sections.append(line)
-        sections.append("")
+        db_items = _technologies_by_category(portfolio.technologies, "database")
+        cloud_items = _technologies_by_category(portfolio.technologies, "cloud")
+        stack_items = [
+            item
+            for item in portfolio.technologies
+            if (item.category if item.category in TECH_CATEGORY_ORDER else "other")
+            not in ("database", "cloud")
+        ]
+
+        _append_technology_category_section(
+            sections,
+            title="## Bases de datos",
+            hint=DATABASE_SECTION_HINT.get(lang, DATABASE_SECTION_HINT["es"]),
+            items=db_items,
+            messages=messages,
+            lang=lang,
+        )
+        _append_technology_category_section(
+            sections,
+            title="## Cloud y hosting",
+            hint=CLOUD_SECTION_HINT.get(lang, CLOUD_SECTION_HINT["es"]),
+            items=cloud_items,
+            messages=messages,
+            lang=lang,
+        )
+
+        if stack_items:
+            hint = STACK_SECTION_HINT.get(lang, STACK_SECTION_HINT["es"])
+            sections.append("## Stack tecnológico (backend, frontend y otros)")
+            sections.append(hint)
+            for category, items in _group_technologies_by_category(stack_items):
+                sections.append(f"### {_tech_category_label(category, lang)}")
+                sections.extend(_format_technology_lines(items, messages, lang))
+            sections.append("")
 
     return "\n".join(sections).strip()
