@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     upload_allowed_mime_types: str = (
         "image/jpeg,image/png,image/webp,image/gif,application/pdf"
     )
+    flaticon_api_key: str = ""
 
     @property
     def i18n_target_languages_list(self) -> list[str]:
