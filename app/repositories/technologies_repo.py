@@ -6,6 +6,17 @@ from supabase import Client
 from app.repositories.base import run_supabase_query
 from app.schemas.technologies import Technology
 
+CATEGORY_ORDER = {
+    "backend": 0,
+    "frontend": 1,
+    "database": 2,
+    "cloud": 3,
+    "mobile": 4,
+    "tools": 5,
+    "devops": 6,
+    "other": 99,
+}
+
 
 class TechnologiesRepository:
     def __init__(self, client: Client) -> None:
@@ -26,7 +37,15 @@ class TechnologiesRepository:
 
             response = db_query.execute()
             rows: list[dict[str, Any]] = response.data or []
-            return [Technology.model_validate(row) for row in rows]
+            items = [Technology.model_validate(row) for row in rows]
+            return sorted(
+                items,
+                key=lambda item: (
+                    CATEGORY_ORDER.get(item.category, 99),
+                    item.sort_order,
+                    item.name.lower(),
+                ),
+            )
 
         return run_supabase_query(query)
 

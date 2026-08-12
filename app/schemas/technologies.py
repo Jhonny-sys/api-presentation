@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 TechnologyCategory = Literal[
-    "frontend", "backend", "database", "devops", "mobile", "tools", "other"
+    "frontend", "backend", "database", "cloud", "mobile", "tools", "other"
 ]
 
 

@@ -42,4 +42,4 @@ class TechnologyWrite(BaseModel):
     name: str = Field(..., min_length=1)
     description: str | None = None
     icon_url: str | None = None
-    category: TechnologyCategory = "other"
+    category: TechnologyCategory = "backend"
