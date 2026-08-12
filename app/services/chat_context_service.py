@@ -16,6 +16,47 @@ NO_DATES_LABEL: dict[str, str] = {
     "pt": "Sem datas",
 }
 
+TECH_CATEGORY_LABEL: dict[str, dict[str, str]] = {
+    "es": {
+        "backend": "Backend",
+        "frontend": "Frontend",
+        "database": "Base de datos",
+        "cloud": "Cloud",
+        "other": "Otros",
+    },
+    "en": {
+        "backend": "Backend",
+        "frontend": "Frontend",
+        "database": "Database",
+        "cloud": "Cloud",
+        "other": "Other",
+    },
+    "pt": {
+        "backend": "Backend",
+        "frontend": "Frontend",
+        "database": "Banco de dados",
+        "cloud": "Cloud",
+        "other": "Outros",
+    },
+}
+
+TECH_CATEGORY_ORDER = ("backend", "frontend", "database", "cloud", "other")
+
+STACK_SECTION_HINT: dict[str, str] = {
+    "es": (
+        "Nota: preguntas sobre proyectos, stack, tecnologías o herramientas "
+        "deben responderse con esta sección."
+    ),
+    "en": (
+        "Note: questions about projects, stack, technologies or tools "
+        "should be answered using this section."
+    ),
+    "pt": (
+        "Nota: perguntas sobre projetos, stack, tecnologias ou ferramentas "
+        "devem ser respondidas com esta seção."
+    ),
+}
+
 
 def _localized(messages: dict[str, str], key: str, fallback: str | None) -> str:
     return messages.get(key) or fallback or ""
@@ -112,6 +153,24 @@ def _period_label(
     return f"{start_s} — {end_label}" if start_s else end_label
 
 
+def _tech_category_label(category: str, lang: str) -> str:
+    labels = TECH_CATEGORY_LABEL.get(lang, TECH_CATEGORY_LABEL["es"])
+    return labels.get(category, labels["other"])
+
+
+def _group_technologies_by_category(technologies):
+    buckets: dict[str, list] = {}
+    for item in technologies:
+        category = item.category if item.category in TECH_CATEGORY_ORDER else "other"
+        buckets.setdefault(category, []).append(item)
+
+    groups: list[tuple[str, list]] = []
+    for category in TECH_CATEGORY_ORDER:
+        if category in buckets:
+            groups.append((category, buckets[category]))
+    return groups
+
+
 def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang: str) -> str:
     profile = portfolio.profile
     sections: list[str] = [f"Idioma de respuesta: {lang}", ""]
@@ -175,17 +234,21 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
         sections.append("")
 
     if portfolio.technologies:
-        sections.append("## Tecnologías")
-        for item in portfolio.technologies:
-            description = _localized(
-                messages,
-                _technology_key(item.id, "description"),
-                item.description,
-            )
-            line = f"- {item.name}"
-            if description:
-                line += f": {description}"
-            sections.append(line)
+        hint = STACK_SECTION_HINT.get(lang, STACK_SECTION_HINT["es"])
+        sections.append("## Stack tecnológico (proyectos y herramientas)")
+        sections.append(hint)
+        for category, items in _group_technologies_by_category(portfolio.technologies):
+            sections.append(f"### {_tech_category_label(category, lang)}")
+            for item in items:
+                description = _localized(
+                    messages,
+                    _technology_key(item.id, "description"),
+                    item.description,
+                )
+                line = f"- {item.name}"
+                if description:
+                    line += f": {description}"
+                sections.append(line)
         sections.append("")
 
     return "\n".join(sections).strip()
