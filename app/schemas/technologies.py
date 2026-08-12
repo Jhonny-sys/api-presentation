@@ -17,6 +17,7 @@ class Technology(BaseModel):
     profile_id: UUID
     name: str
     category: TechnologyCategory
+    description: str | None = None
     proficiency: int | None = Field(default=None, ge=1, le=5)
     icon_url: str | None = None
     years_experience: float | None = None

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.core.security import verify_access_token
@@ -10,6 +12,12 @@ from app.repositories.technologies_repo import TechnologiesRepository
 from app.schemas.experience import Experience
 from app.schemas.personal_info import PersonalInfo
 from app.schemas.portfolio import Portfolio
+from app.schemas.portfolio_write import (
+    ExperienceWrite,
+    ProfileBioUpdate,
+    StudyWrite,
+    TechnologyWrite,
+)
 from app.schemas.studies import Study
 from app.schemas.technologies import Technology
 from app.services.portfolio_service import PortfolioService
@@ -31,11 +39,47 @@ def get_profile(client: Client = Depends(get_supabase_client)) -> PersonalInfo |
     return PersonalInfoRepository(client).get_active()
 
 
+@router.put("/profile", response_model=PersonalInfo)
+def upsert_profile(
+    body: ProfileBioUpdate,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> PersonalInfo:
+    return service.upsert_profile_bio(body)
+
+
 @router.get("/experience", response_model=list[Experience])
 def list_experience(client: Client = Depends(get_supabase_client)) -> list[Experience]:
     profile = PersonalInfoRepository(client).get_active()
     profile_id = str(profile.id) if profile else None
     return ExperienceRepository(client).list_active(profile_id)
+
+
+@router.post("/experience", response_model=Experience, status_code=status.HTTP_201_CREATED)
+def create_experience(
+    body: ExperienceWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Experience:
+    return service.create_experience(body)
+
+
+@router.put("/experience/{item_id}", response_model=Experience)
+def update_experience(
+    item_id: UUID,
+    body: ExperienceWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Experience:
+    try:
+        return service.update_experience(item_id, body)
+    except LookupError as exc:
+        raise PortfolioService.not_found(exc) from exc
+
+
+@router.delete("/experience/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_experience(
+    item_id: UUID,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> None:
+    service.delete_experience(item_id)
 
 
 @router.get("/studies", response_model=list[Study])
@@ -45,11 +89,67 @@ def list_studies(client: Client = Depends(get_supabase_client)) -> list[Study]:
     return StudiesRepository(client).list_active(profile_id)
 
 
+@router.post("/studies", response_model=Study, status_code=status.HTTP_201_CREATED)
+def create_study(
+    body: StudyWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Study:
+    return service.create_study(body)
+
+
+@router.put("/studies/{item_id}", response_model=Study)
+def update_study(
+    item_id: UUID,
+    body: StudyWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Study:
+    try:
+        return service.update_study(item_id, body)
+    except LookupError as exc:
+        raise PortfolioService.not_found(exc) from exc
+
+
+@router.delete("/studies/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_study(
+    item_id: UUID,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> None:
+    service.delete_study(item_id)
+
+
 @router.get("/technologies", response_model=list[Technology])
 def list_technologies(client: Client = Depends(get_supabase_client)) -> list[Technology]:
     profile = PersonalInfoRepository(client).get_active()
     profile_id = str(profile.id) if profile else None
     return TechnologiesRepository(client).list_active(profile_id)
+
+
+@router.post("/technologies", response_model=Technology, status_code=status.HTTP_201_CREATED)
+def create_technology(
+    body: TechnologyWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Technology:
+    return service.create_technology(body)
+
+
+@router.put("/technologies/{item_id}", response_model=Technology)
+def update_technology(
+    item_id: UUID,
+    body: TechnologyWrite,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> Technology:
+    try:
+        return service.update_technology(item_id, body)
+    except LookupError as exc:
+        raise PortfolioService.not_found(exc) from exc
+
+
+@router.delete("/technologies/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_technology(
+    item_id: UUID,
+    service: PortfolioService = Depends(get_portfolio_service),
+) -> None:
+    service.delete_technology(item_id)
 
 
 @router.get("/portfolio", response_model=Portfolio)

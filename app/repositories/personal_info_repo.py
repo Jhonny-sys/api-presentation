@@ -27,3 +27,29 @@ class PersonalInfoRepository:
             return PersonalInfo.model_validate(rows[0])
 
         return run_supabase_query(query)
+
+    def create(self, payload: dict[str, Any]) -> PersonalInfo:
+        def query() -> PersonalInfo:
+            response = self._client.table(self._table).insert(payload).execute()
+            rows: list[dict[str, Any]] = response.data or []
+            if not rows:
+                raise RuntimeError("No se pudo crear el perfil")
+            return PersonalInfo.model_validate(rows[0])
+
+        return run_supabase_query(query)
+
+    def update(self, profile_id: str, payload: dict[str, Any]) -> PersonalInfo:
+        def query() -> PersonalInfo:
+            response = (
+                self._client.table(self._table)
+                .update(payload)
+                .eq("id", profile_id)
+                .eq("is_active", True)
+                .execute()
+            )
+            rows: list[dict[str, Any]] = response.data or []
+            if not rows:
+                raise LookupError("Perfil no encontrado")
+            return PersonalInfo.model_validate(rows[0])
+
+        return run_supabase_query(query)
