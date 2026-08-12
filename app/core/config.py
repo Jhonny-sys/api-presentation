@@ -19,29 +19,54 @@ class Settings(BaseSettings):
     jwt_refresh_expire_days: int = 7
     refresh_token_pepper: str
     api_client_secret: str
+    admin_username: str = "admin"
+    admin_password: str
+
+    i18n_source_lang: str = "es"
+    i18n_target_languages: str = "en,pt"
+    translation_api_url: str = "https://api.mymemory.translated.net/get"
+    translation_delay_ms: int = 350
+
+    supabase_storage_bucket: str = "portfolio-assets"
+    upload_max_files: int = 3
+    upload_max_size_mb: int = 5
+    upload_allowed_mime_types: str = (
+        "image/jpeg,image/png,image/webp,image/gif,application/pdf"
+    )
+
+    @property
+    def i18n_target_languages_list(self) -> list[str]:
+        langs = [
+            lang.strip().lower()
+            for lang in self.i18n_target_languages.split(",")
+            if lang.strip()
+        ]
+        return [lang for lang in langs if lang != self.i18n_source_lang.lower()]
+
+    @property
+    def i18n_all_languages_list(self) -> list[str]:
+        source = self.i18n_source_lang.lower()
+        return [source, *self.i18n_target_languages_list]
 
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    @property
+    def upload_max_size_bytes(self) -> int:
+        return self.upload_max_size_mb * 1024 * 1024
+
+    @property
+    def upload_allowed_mime_types_list(self) -> set[str]:
+        return {
+            mime.strip()
+            for mime in self.upload_allowed_mime_types.split(",")
+            if mime.strip()
+        }
+
     def validate_supabase_key(self) -> None:
-        key = self.supabase_service_key
-
-        if key.startswith("sb_secret_") or key.startswith("eyJ"):
-            return
-
-        if key.startswith("sb_publishable_"):
-            logger.warning(
-                "SUPABASE_SERVICE_KEY parece ser la publishable key. "
-                "El backend necesita la SECRET key (sb_secret_...) desde Supabase → Settings → API Keys."
-            )
-            return
-
-        logger.warning(
-            "SUPABASE_SERVICE_KEY no está configurada correctamente. "
-            "Copia la Secret key desde Supabase → Settings → API Keys → Secret keys → default. "
-            "Formato nuevo: sb_secret_... | Legacy: eyJ..."
-        )
+        if not self.supabase_service_key:
+            logger.warning("SUPABASE_SERVICE_KEY no configurada")
 
 
 settings = Settings()

@@ -61,35 +61,34 @@ def _decode_access_token(credentials: HTTPAuthorizationCredentials | None) -> di
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    return verify_bearer_token(credentials.credentials)
+
+
+def decode_access_token(token: str) -> dict:
+    payload = jwt.decode(
+        token,
+        settings.jwt_secret,
+        algorithms=[settings.jwt_algorithm],
+    )
+
+    if payload.get("type") != ACCESS_TOKEN_TYPE:
+        raise InvalidTokenError("invalid token type")
+
+    if not payload.get(FAMILY_ID_CLAIM):
+        raise InvalidTokenError("missing family id")
+
+    return payload
+
+
+def verify_bearer_token(token: str) -> dict:
     try:
-        payload = jwt.decode(
-            credentials.credentials,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm],
-        )
+        return decode_access_token(token)
     except InvalidTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Access token inválido o expirado",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
-
-    if payload.get("type") != ACCESS_TOKEN_TYPE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tipo de token inválido. Usa un access token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    family_id = payload.get(FAMILY_ID_CLAIM)
-    if not family_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token inválido: sesión no identificada",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return payload
 
 
 def verify_access_token(

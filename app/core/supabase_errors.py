@@ -9,11 +9,7 @@ def raise_supabase_http_error(exc: APIError) -> None:
     if "Invalid API key" in details or "Invalid API key" in message:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Supabase API key inválida. "
-                "Usa SUPABASE_SERVICE_KEY desde Supabase → Project Settings → API → service_role. "
-                "No uses la contraseña de la base de datos."
-            ),
+            detail="Error de configuración del servicio de datos.",
         ) from exc
 
     raise HTTPException(

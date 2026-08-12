@@ -1,10 +1,19 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.core.config import settings
-from app.core.security import AuthTokenService
+from app.core.security import AuthTokenService, verify_access_token
 from app.core.supabase import get_supabase_client
-from app.schemas.auth import RefreshRequest, RevokeRequest, TokenRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    MeResponse,
+    RefreshRequest,
+    RevokeRequest,
+    TokenRequest,
+    TokenResponse,
+)
 from app.services.token_cleanup_service import TokenCleanupService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -18,13 +27,40 @@ def get_cleanup_service(client: Client = Depends(get_supabase_client)) -> TokenC
     return TokenCleanupService(client)
 
 
+def _validate_admin_credentials(username: str, password: str) -> None:
+    user_ok = secrets.compare_digest(username, settings.admin_username)
+    pass_ok = secrets.compare_digest(password, settings.admin_password)
+    if not (user_ok and pass_ok):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas",
+        )
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(
+    body: LoginRequest,
+    service: AuthTokenService = Depends(get_auth_service),
+    cleanup: TokenCleanupService = Depends(get_cleanup_service),
+) -> TokenResponse:
+    _validate_admin_credentials(body.username, body.password)
+    tokens = service.issue_token_pair(subject=body.username)
+    cleanup.purge_if_due()
+    return TokenResponse(**tokens)
+
+
+@router.get("/me", response_model=MeResponse)
+def get_me(payload: dict = Depends(verify_access_token)) -> MeResponse:
+    return MeResponse(subject=payload["sub"], type=payload.get("type", "access"))
+
+
 @router.post("/token", response_model=TokenResponse)
 def create_token(
     body: TokenRequest,
     service: AuthTokenService = Depends(get_auth_service),
     cleanup: TokenCleanupService = Depends(get_cleanup_service),
 ) -> TokenResponse:
-    if body.client_secret != settings.api_client_secret:
+    if not secrets.compare_digest(body.client_secret, settings.api_client_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="client_secret inválido",
