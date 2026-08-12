@@ -1,9 +1,12 @@
 from uuid import UUID
 
+import logging
+
 from fastapi import HTTPException, status
 from supabase import Client
 
 from app.repositories.experience_repo import ExperienceRepository
+from app.repositories.i18n_repo import I18nRepository
 from app.repositories.personal_info_repo import PersonalInfoRepository
 from app.repositories.studies_repo import StudiesRepository
 from app.repositories.technologies_repo import TechnologiesRepository
@@ -12,19 +15,24 @@ from app.schemas.personal_info import PersonalInfo
 from app.schemas.portfolio import Portfolio
 from app.schemas.portfolio_write import (
     ExperienceWrite,
-    ProfileBioUpdate,
+    ProfileUpdate,
     StudyWrite,
     TechnologyWrite,
 )
 from app.schemas.studies import Study
 from app.schemas.technologies import Technology
+from app.services.i18n_service import I18nService
 
 DEFAULT_FULL_NAME = "Jhonny Alexander Fonseca"
 DEFAULT_HEADLINE = "Desarrollador"
+PROFILE_BIO_I18N_KEY = "profile.bio"
+
+logger = logging.getLogger(__name__)
 
 
 class PortfolioService:
     def __init__(self, client: Client) -> None:
+        self._client = client
         self._personal_info = PersonalInfoRepository(client)
         self._experience = ExperienceRepository(client)
         self._studies = StudiesRepository(client)
@@ -56,19 +64,47 @@ class PortfolioService:
         )
         return str(created.id)
 
-    def upsert_profile_bio(self, body: ProfileBioUpdate) -> PersonalInfo:
+    def upsert_profile(self, body: ProfileUpdate) -> PersonalInfo:
+        payload = body.model_dump(exclude_unset=True)
+        if not payload:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="No hay datos para actualizar",
+            )
+
         profile = self._personal_info.get_active()
         if profile:
-            return self._personal_info.update(str(profile.id), {"bio": body.bio})
+            result = self._personal_info.update(str(profile.id), payload)
+        else:
+            result = self._personal_info.create(
+                {
+                    "full_name": DEFAULT_FULL_NAME,
+                    "headline": DEFAULT_HEADLINE,
+                    "bio": payload.get("bio", ""),
+                    "avatar_url": payload.get("avatar_url"),
+                    "resume_url": payload.get("resume_url"),
+                    "letter_url": payload.get("letter_url"),
+                    "is_active": True,
+                }
+            )
 
-        return self._personal_info.create(
-            {
-                "full_name": DEFAULT_FULL_NAME,
-                "headline": DEFAULT_HEADLINE,
-                "bio": body.bio,
-                "is_active": True,
-            }
-        )
+        if "bio" in payload and payload["bio"] is not None:
+            self._sync_profile_bio_i18n(payload["bio"])
+        return result
+
+    def _sync_profile_bio_i18n(self, bio: str) -> None:
+        if not bio.strip():
+            return
+
+        try:
+            repo = I18nRepository(self._client)
+            i18n = I18nService(self._client)
+            if repo.get_entry_by_key(PROFILE_BIO_I18N_KEY):
+                i18n.update_entry(PROFILE_BIO_I18N_KEY, bio)
+            else:
+                i18n.create_entry(PROFILE_BIO_I18N_KEY, bio, namespace="profile")
+        except Exception as exc:
+            logger.warning("No se pudo sincronizar profile.bio con i18n: %s", exc)
 
     def create_experience(self, body: ExperienceWrite) -> Experience:
         end_date = None if body.is_current else body.end_date

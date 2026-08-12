@@ -1,6 +1,7 @@
 import logging
 from uuid import UUID
 
+import httpx
 from jwt.exceptions import InvalidTokenError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -22,6 +23,31 @@ PUBLIC_API_PATHS = frozenset(
     }
 )
 
+PUBLIC_GET_PATHS = frozenset(
+    {
+        f"{settings.api_prefix}/portfolio",
+        f"{settings.api_prefix}/profile",
+        f"{settings.api_prefix}/experience",
+        f"{settings.api_prefix}/studies",
+        f"{settings.api_prefix}/technologies",
+        f"{settings.api_prefix}/i18n/languages",
+    }
+)
+
+PUBLIC_GET_PREFIXES = (
+    f"{settings.api_prefix}/i18n/bundle/",
+)
+
+
+def is_public_api_request(method: str, path: str) -> bool:
+    if path in PUBLIC_API_PATHS:
+        return True
+    if method != "GET":
+        return False
+    if path in PUBLIC_GET_PATHS:
+        return True
+    return any(path.startswith(prefix) for prefix in PUBLIC_GET_PREFIXES)
+
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
@@ -37,7 +63,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         if path == "/health" or not path.startswith(settings.api_prefix):
             return await call_next(request)
 
-        if path in PUBLIC_API_PATHS:
+        if is_public_api_request(request.method, path):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
@@ -61,7 +87,16 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             )
 
         family_id = UUID(payload["fid"])
-        if SessionRepository(get_supabase_client()).is_family_revoked(family_id):
+        try:
+            revoked = SessionRepository(get_supabase_client()).is_family_revoked(family_id)
+        except httpx.HTTPError as exc:
+            logger.error("Supabase no disponible al validar sesión: %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "Servicio de datos temporalmente no disponible"},
+            )
+
+        if revoked:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Sesión revocada"},

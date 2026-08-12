@@ -17,7 +17,6 @@ from app.services.i18n_service import I18nService
 router = APIRouter(
     prefix="/i18n",
     tags=["i18n"],
-    dependencies=[Depends(verify_access_token)],
 )
 
 
@@ -34,7 +33,7 @@ def list_supported_languages() -> I18nLanguagesResponse:
     )
 
 
-@router.post("", response_model=I18nEntryResponse, status_code=201)
+@router.post("", response_model=I18nEntryResponse, status_code=201, dependencies=[Depends(verify_access_token)])
 def create_i18n_entry(
     body: I18nCreateRequest,
     service: I18nService = Depends(get_i18n_service),
@@ -49,7 +48,7 @@ def create_i18n_entry(
     return I18nEntryResponse(**result)
 
 
-@router.get("", response_model=list[I18nEntryResponse])
+@router.get("", response_model=list[I18nEntryResponse], dependencies=[Depends(verify_access_token)])
 def list_i18n_entries(
     namespace: str | None = Query(default=None),
     service: I18nService = Depends(get_i18n_service),
@@ -67,7 +66,7 @@ def get_i18n_bundle(
     return I18nBundleResponse(**result)
 
 
-@router.get("/{key:path}", response_model=I18nEntryResponse)
+@router.get("/{key:path}", response_model=I18nEntryResponse, dependencies=[Depends(verify_access_token)])
 def get_i18n_entry(
     key: str,
     service: I18nService = Depends(get_i18n_service),
@@ -76,7 +75,7 @@ def get_i18n_entry(
     return I18nEntryResponse(**result)
 
 
-@router.put("/{key:path}", response_model=I18nEntryResponse)
+@router.put("/{key:path}", response_model=I18nEntryResponse, dependencies=[Depends(verify_access_token)])
 def update_i18n_entry(
     key: str,
     body: I18nUpdateRequest,
@@ -90,7 +89,7 @@ def update_i18n_entry(
     return I18nEntryResponse(**result)
 
 
-@router.patch("/{key:path}/translations/{lang_code}", response_model=I18nEntryResponse)
+@router.patch("/{key:path}/translations/{lang_code}", response_model=I18nEntryResponse, dependencies=[Depends(verify_access_token)])
 def patch_i18n_translation(
     key: str,
     lang_code: str,

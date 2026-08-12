@@ -18,6 +18,7 @@ class PersonalInfo(BaseModel):
     location: str | None = None
     avatar_url: str | None = None
     resume_url: str | None = None
+    letter_url: str | None = None
     social_links: SocialLinks = Field(default_factory=SocialLinks)
     available_for_work: bool = True
     is_active: bool = True

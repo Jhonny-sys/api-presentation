@@ -1,9 +1,10 @@
-import hashlib
 import logging
+import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+import httpx
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -98,7 +99,16 @@ def verify_access_token(
     payload = _decode_access_token(credentials)
     family_id = UUID(payload[FAMILY_ID_CLAIM])
 
-    if SessionRepository(client).is_family_revoked(family_id):
+    try:
+        revoked = SessionRepository(client).is_family_revoked(family_id)
+    except httpx.HTTPError as exc:
+        logger.error("Supabase no disponible al validar sesión: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Servicio de datos temporalmente no disponible",
+        ) from exc
+
+    if revoked:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Sesión revocada",

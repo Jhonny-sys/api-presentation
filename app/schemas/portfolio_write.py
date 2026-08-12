@@ -5,8 +5,15 @@ from pydantic import BaseModel, Field
 from app.schemas.technologies import TechnologyCategory
 
 
-class ProfileBioUpdate(BaseModel):
-    bio: str = Field(..., min_length=1)
+class ProfileUpdate(BaseModel):
+    bio: str | None = None
+    avatar_url: str | None = None
+    resume_url: str | None = None
+    letter_url: str | None = None
+
+
+class ProfileBioUpdate(ProfileUpdate):
+    """Alias retrocompatible."""
 
 
 class ExperienceWrite(BaseModel):

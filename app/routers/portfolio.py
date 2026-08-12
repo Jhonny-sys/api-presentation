@@ -14,7 +14,7 @@ from app.schemas.personal_info import PersonalInfo
 from app.schemas.portfolio import Portfolio
 from app.schemas.portfolio_write import (
     ExperienceWrite,
-    ProfileBioUpdate,
+    ProfileUpdate,
     StudyWrite,
     TechnologyWrite,
 )
@@ -22,10 +22,7 @@ from app.schemas.studies import Study
 from app.schemas.technologies import Technology
 from app.services.portfolio_service import PortfolioService
 
-router = APIRouter(
-    tags=["portfolio"],
-    dependencies=[Depends(verify_access_token)],
-)
+router = APIRouter(tags=["portfolio"])
 
 
 def get_portfolio_service(
@@ -39,12 +36,12 @@ def get_profile(client: Client = Depends(get_supabase_client)) -> PersonalInfo |
     return PersonalInfoRepository(client).get_active()
 
 
-@router.put("/profile", response_model=PersonalInfo)
+@router.put("/profile", response_model=PersonalInfo, dependencies=[Depends(verify_access_token)])
 def upsert_profile(
-    body: ProfileBioUpdate,
+    body: ProfileUpdate,
     service: PortfolioService = Depends(get_portfolio_service),
 ) -> PersonalInfo:
-    return service.upsert_profile_bio(body)
+    return service.upsert_profile(body)
 
 
 @router.get("/experience", response_model=list[Experience])
@@ -54,7 +51,7 @@ def list_experience(client: Client = Depends(get_supabase_client)) -> list[Exper
     return ExperienceRepository(client).list_active(profile_id)
 
 
-@router.post("/experience", response_model=Experience, status_code=status.HTTP_201_CREATED)
+@router.post("/experience", response_model=Experience, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_access_token)])
 def create_experience(
     body: ExperienceWrite,
     service: PortfolioService = Depends(get_portfolio_service),
@@ -62,7 +59,7 @@ def create_experience(
     return service.create_experience(body)
 
 
-@router.put("/experience/{item_id}", response_model=Experience)
+@router.put("/experience/{item_id}", response_model=Experience, dependencies=[Depends(verify_access_token)])
 def update_experience(
     item_id: UUID,
     body: ExperienceWrite,
@@ -74,7 +71,7 @@ def update_experience(
         raise PortfolioService.not_found(exc) from exc
 
 
-@router.delete("/experience/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/experience/{item_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_access_token)])
 def delete_experience(
     item_id: UUID,
     service: PortfolioService = Depends(get_portfolio_service),
@@ -89,7 +86,7 @@ def list_studies(client: Client = Depends(get_supabase_client)) -> list[Study]:
     return StudiesRepository(client).list_active(profile_id)
 
 
-@router.post("/studies", response_model=Study, status_code=status.HTTP_201_CREATED)
+@router.post("/studies", response_model=Study, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_access_token)])
 def create_study(
     body: StudyWrite,
     service: PortfolioService = Depends(get_portfolio_service),
@@ -97,7 +94,7 @@ def create_study(
     return service.create_study(body)
 
 
-@router.put("/studies/{item_id}", response_model=Study)
+@router.put("/studies/{item_id}", response_model=Study, dependencies=[Depends(verify_access_token)])
 def update_study(
     item_id: UUID,
     body: StudyWrite,
@@ -109,7 +106,7 @@ def update_study(
         raise PortfolioService.not_found(exc) from exc
 
 
-@router.delete("/studies/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/studies/{item_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_access_token)])
 def delete_study(
     item_id: UUID,
     service: PortfolioService = Depends(get_portfolio_service),
@@ -124,7 +121,7 @@ def list_technologies(client: Client = Depends(get_supabase_client)) -> list[Tec
     return TechnologiesRepository(client).list_active(profile_id)
 
 
-@router.post("/technologies", response_model=Technology, status_code=status.HTTP_201_CREATED)
+@router.post("/technologies", response_model=Technology, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_access_token)])
 def create_technology(
     body: TechnologyWrite,
     service: PortfolioService = Depends(get_portfolio_service),
@@ -132,7 +129,7 @@ def create_technology(
     return service.create_technology(body)
 
 
-@router.put("/technologies/{item_id}", response_model=Technology)
+@router.put("/technologies/{item_id}", response_model=Technology, dependencies=[Depends(verify_access_token)])
 def update_technology(
     item_id: UUID,
     body: TechnologyWrite,
@@ -144,7 +141,7 @@ def update_technology(
         raise PortfolioService.not_found(exc) from exc
 
 
-@router.delete("/technologies/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/technologies/{item_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_access_token)])
 def delete_technology(
     item_id: UUID,
     service: PortfolioService = Depends(get_portfolio_service),
