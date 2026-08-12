@@ -180,7 +180,8 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
         bio = _localized(messages, "profile.bio", profile.bio)
         sections.extend(
             [
-                "## Perfil",
+                "## Perfil (hoja de vida, CV, bio, presentación)",
+                "Usa esta sección cuando pregunten por el perfil, hoja de vida, CV o quién es.",
                 f"Nombre: {profile.full_name}",
                 f"Título: {headline}",
                 f"Bio: {bio}",
