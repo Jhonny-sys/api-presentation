@@ -191,6 +191,8 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
             sections.append(f"Email: {profile.email}")
         if profile.phone:
             sections.append(f"Teléfono: {profile.phone}")
+        if profile.location:
+            sections.append(f"Ubicación: {profile.location}")
         social = profile.social_links
         if social.github:
             sections.append(f"GitHub: {social.github}")
