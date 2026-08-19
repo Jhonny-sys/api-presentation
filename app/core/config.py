@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     )
 
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
+    groq_fallback_models: str = "groq/compound-mini"
     groq_api_url: str = "https://api.groq.com/openai/v1/chat/completions"
     chat_max_turns: int = 3
     chat_max_message_chars: int = 500
@@ -69,6 +70,12 @@ class Settings(BaseSettings):
             for mime in self.upload_allowed_mime_types.split(",")
             if mime.strip()
         }
+
+    @property
+    def groq_models_list(self) -> list[str]:
+        """Configured Groq models, in priority order and without duplicates."""
+        models = [self.groq_model, *self.groq_fallback_models.split(",")]
+        return list(dict.fromkeys(model.strip() for model in models if model.strip()))
 
     def validate_supabase_key(self) -> None:
         if not self.supabase_service_key:
