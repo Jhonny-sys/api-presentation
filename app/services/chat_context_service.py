@@ -173,6 +173,54 @@ def _experience_summary(experiences: list[Experience], lang: str) -> str:
     )
 
 
+def _company_key(company: str) -> str:
+    return " ".join(company.casefold().split())
+
+
+def _experience_by_company_summary(
+    experiences: list[Experience],
+    messages: dict[str, str],
+    lang: str,
+) -> list[str]:
+    """Build explicit company aggregates so the assistant considers every role."""
+    grouped: dict[str, list[Experience]] = {}
+    for item in experiences:
+        grouped.setdefault(_company_key(item.company), []).append(item)
+
+    lines: list[str] = []
+    for items in grouped.values():
+        if len(items) < 2:
+            continue
+        company = _localized(
+            messages,
+            _experience_key(items[0].id, "company"),
+            items[0].company,
+        ).strip()
+        total_months = sum(
+            _months_between(item.start_date, _job_end(item)) for item in items
+        )
+        periods = "; ".join(
+            _period_label(item.start_date, item.end_date, item.is_current, lang)
+            for item in items
+        )
+        if lang == "en":
+            lines.append(
+                f"- {company}: {len(items)} registered roles; combined time "
+                f"{_format_duration(total_months, lang)}. Periods: {periods}."
+            )
+        elif lang == "pt":
+            lines.append(
+                f"- {company}: {len(items)} cargos registrados; tempo combinado "
+                f"de {_format_duration(total_months, lang)}. Períodos: {periods}."
+            )
+        else:
+            lines.append(
+                f"- {company}: {len(items)} cargos registrados; tiempo acumulado "
+                f"de {_format_duration(total_months, lang)}. Períodos: {periods}."
+            )
+    return lines
+
+
 def _period_label(
     start: date | str | None,
     end: date | str | None,
@@ -283,6 +331,16 @@ def build_portfolio_context(portfolio: Portfolio, messages: dict[str, str], lang
     if portfolio.experience:
         sections.append("## Experiencia laboral")
         sections.append(_experience_summary(portfolio.experience, lang))
+        company_summaries = _experience_by_company_summary(
+            portfolio.experience, messages, lang
+        )
+        if company_summaries:
+            sections.append("### Resumen por empresa")
+            sections.append(
+                "Si preguntan por una empresa, usa todas sus entradas y el tiempo acumulado; "
+                "no respondas usando solo un cargo."
+            )
+            sections.extend(company_summaries)
         for item in portfolio.experience:
             period = _period_label(item.start_date, item.end_date, item.is_current, lang)
             months = _months_between(item.start_date, _job_end(item))
